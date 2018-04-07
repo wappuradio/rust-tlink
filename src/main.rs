@@ -131,7 +131,7 @@ fn example_main() -> Result<(), Error> {
 	*/
     pipeline.add_many(&[&udpsrc, &rtpbin, &rtpopusdepay, &opusdec, &audioconvert, &jackaudiosink])?;
     // TODO: Check what actually need to be linked
-    gst::Element::link_many(&[&rtpopusdepay, &opusdec, &audioconvert, &jackaudiosink])?;
+    gst::Element::link_many(&[&udpsrc, &rtpopusdepay, &opusdec, &audioconvert, &jackaudiosink])?;
 
 
     rtpbin.connect("new-storage", false, |values| {
