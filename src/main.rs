@@ -147,24 +147,25 @@ fn example_main() -> Result<(), Error> {
     rtpbin.connect("request-pt-map", false, |values| {
         let pt = values[2].get::<u32>().expect("Invalid argument");
         match pt {
-            100 => Some(
-                gst::Caps::new_simple(
-                    "application/x-rtp",
-                    &[
-                        ("media", &"video"),
-                        ("clock-rate", &90000i32),
-                        ("is-fec", &true),
-                    ],
-                ).to_value(),
-            ),
+        	100 => Some(
+-                gst::Caps::new_simple(
+-                    "application/x-rtp",
+-                    &[
+-                        ("media", &"audio"),
+-                        ("clock-rate", &48000i32),
+-                        ("is-fec", &true),
+-                    ],
+-                ).to_value(),
+-            ),
+
             96 => Some(
                 gst::Caps::new_simple(
                     "application/x-rtp",
                     &[
-                        ("media", &"video"),
-                        ("clock-rate", &90000i32),
-                        ("encoding-name", &"VP8"),
-                    ],
+                        ("media", &"audio"),
+                        ("clock-rate", &48000i32),
+                        ("encoding-name", &"OPUS")
+                    ]
                 ).to_value(),
             ),
             _ => None,
