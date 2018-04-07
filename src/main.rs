@@ -113,17 +113,24 @@ fn example_main() -> Result<(), Error> {
     let drop_probability = args[2].parse::<f32>()?;
 
     let pipeline = gst::Pipeline::new(None);
-    let src = make_element("udpsrc", None)?;
-    let netsim = make_element("netsim", None)?;
     let rtpbin = make_element("rtpbin", None)?;
+    let rtpulpfecdec = make_element("rtpulpfecdec", None)?;
+    let rtpopusdepay = make_element("rtpopusdepay", None)?;
+    let opusdec = make_element("opusdec", None)?;
+    let audioconvert = make_element("audioconvert", None)?;
+    let jackaudiosink = make_element("jackaudiosink", None)?;
+
+    /*
+    let netsim = make_element("netsim", None)?;
     let depay = make_element("rtpvp8depay", None)?;
     let dec = make_element("vp8dec", None)?;
     let conv = make_element("videoconvert", None)?;
     let scale = make_element("videoscale", None)?;
     let filter = make_element("capsfilter", None)?;
-
-    pipeline.add_many(&[&src, &netsim, &rtpbin, &depay, &dec, &conv, &scale, &filter])?;
-    gst::Element::link_many(&[&depay, &dec, &conv, &scale, &filter])?;
+	*/
+    pipeline.add_many(&[&src, &rtpbin, &rtpulpfecdec, &rtpopusdepay, &opusdec, &audioconvert, &jackaudiosink])?;
+    // TODO: Check what actually need to be linked
+    //gst::Element::link_many(&[&depay, &dec, &conv, &scale, &filter])?;
 
     match args[1].as_str() {
         "play" => {
