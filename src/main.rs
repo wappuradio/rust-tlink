@@ -189,8 +189,14 @@ fn example_main() -> Result<(), Error> {
             }
         }
     })?;
+    let srcpad = get_static_pad(&udpsrc, "src")?;
+    let sinkpad = get_request_pad(&rtpbin, "recv_rtp_sink_0")?;
+    srcpad.link(&sinkpad).into_result()?;
 
-    let srcpad = get_static_pad(&netsim, "src")?;
+    //This is probably unnecessary for us, maybe?
+    //Lets look into pads at some point, shall we?
+    /*
+    let srcpad = get_static_pad(&rtpbin, None)?;
     let sinkpad = get_request_pad(&rtpbin, "recv_rtp_sink_0")?;
     srcpad.link(&sinkpad).into_result()?;
 
@@ -209,17 +215,13 @@ fn example_main() -> Result<(), Error> {
             }
         }
     });
-
-    let rtp_caps = gst::Caps::new_simple("application/x-rtp", &[("clock-rate", &90000i32)]);
-
-    let video_caps =
-        gst::Caps::new_simple("video/x-raw", &[("width", &1920i32), ("height", &1080i32)]);
-
-    src.set_property("address", &"127.0.0.1".to_value())?;
-    src.set_property("caps", &rtp_caps.to_value())?;
-    netsim.set_property("drop-probability", &drop_probability.to_value())?;
+	*/
+    let rtp_caps = gst::Caps::new_simple("application/x-rtp", &[("clock-rate", &48000i32)]);
+    
+	udpsrc.set_property("address", &address.to_value())?;
+	udpsrc.set_property("port", &port.to_value())?;
+    udpsrc.set_property("caps", &rtp_caps.to_value())?;
     rtpbin.set_property("do-lost", &true.to_value())?;
-    filter.set_property("caps", &video_caps.to_value())?;
 
     let bus = pipeline
         .get_bus()
@@ -261,7 +263,7 @@ fn example_main() -> Result<(), Error> {
     let ret = pipeline.set_state(gst::State::Null);
     assert_ne!(ret, gst::StateChangeReturn::Failure);
 
-    Ok((()))
+    Ok(())
 }
 
 fn main() {
