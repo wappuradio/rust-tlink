@@ -148,23 +148,22 @@ fn example_main() -> Result<(), Error> {
         let pt = values[2].get::<u32>().expect("Invalid argument");
         match pt {
         	100 => Some(
--                gst::Caps::new_simple(
--                    "application/x-rtp",
--                    &[
--                        ("media", &"audio"),
--                        ("clock-rate", &48000i32),
--                        ("is-fec", &true),
--                    ],
--                ).to_value(),
--            ),
-
+                gst::Caps::new_simple(
+                    "application/x-rtp",
+                    &[
+                        ("media", &"audio"),
+                        ("clock-rate", &48000i32),
+                        ("is-fec", &true),
+                    ],
+                ).to_value(),
+            ),
             96 => Some(
                 gst::Caps::new_simple(
                     "application/x-rtp",
                     &[
                         ("media", &"audio"),
                         ("clock-rate", &48000i32),
-                        ("encoding-name", &"OPUS")
+                        ("encoding-name", &"OPUS"),
                     ]
                 ).to_value(),
             ),
