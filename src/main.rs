@@ -134,27 +134,6 @@ fn example_main() -> Result<(), Error> {
     // TODO: Check what actually need to be linked
     gst::Element::link_many(&[&rtpopusdepay, &opusdec, &audioconvert, &jackaudiosink])?;
 
-    match args[1].as_str() {
-        "play" => {
-            let sink = make_element("autovideosink", None)?;
-            pipeline.add(&sink)?;
-            filter.link(&sink)?;
-        }
-        "record" => {
-            let enc = make_element("x264enc", None)?;
-            let mux = make_element("matroskamux", None)?;
-            let sink = make_element("filesink", None)?;
-
-            pipeline.add_many(&[&enc, &mux, &sink])?;
-            gst::Element::link_many(&[&filter, &enc, &mux, &sink])?;
-            sink.set_property("location", &"out.mkv".to_value())?;
-            enc.set_property_from_str("tune", "zerolatency");
-            eprintln!("Recording to out.mkv");
-        }
-        _ => return Err(Error::from(UsageError(args[0].clone()))),
-    }
-
-    src.link(&netsim)?;
 
     rtpbin.connect("new-storage", false, |values| {
         let storage = values[1].get::<gst::Element>().expect("Invalid argument");
