@@ -29,7 +29,7 @@ struct NoSuchPad(&'static str, String);
 struct UnknownPT(u32);
 
 #[derive(Debug, Fail)]
-#[fail(display = "Usage: {} ADDRESS PORT", _0)]
+#[fail(display = "Usage: {} PORT", _0)]
 struct UsageError(String);
 
 #[derive(Debug, Fail)]
@@ -105,12 +105,12 @@ fn example_main() -> Result<(), Error> {
     gst::init()?;
 
     let args: Vec<_> = env::args().collect();
-    if args.len() != 3 {
+    if args.len() != 2 {
         return Err(Error::from(UsageError(args[0].clone())));
     }
 
-    let address = args[1].parse::<String>()?;
-    let port = args[2].parse::<i32>()?;
+   // let address = args[1].parse::<String>()?;
+    let port = args[1].parse::<i32>()?;
 
 
     let pipeline = gst::Pipeline::new(None);
@@ -216,7 +216,7 @@ fn example_main() -> Result<(), Error> {
 	*/
     let rtp_caps = gst::Caps::new_simple("application/x-rtp", &[("clock-rate", &48000i32)]);
     
-	udpsrc.set_property("address", &address.to_value())?;
+	//udpsrc.set_property("address", &address.to_value())?;
 	udpsrc.set_property("port", &port.to_value())?;
     udpsrc.set_property("caps", &rtp_caps.to_value())?;
     rtpbin.set_property("do-lost", &true.to_value())?;
