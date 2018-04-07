@@ -106,14 +106,13 @@ fn example_main() -> Result<(), Error> {
 
     let args: Vec<_> = env::args().collect();
 
-    if args.len() != 3 {
+    if args.len() != 2 {
         return Err(Error::from(UsageError(args[0].clone())));
     }
 
-    let address = args[1].parse::<str>()?;
+    let address = args[1].parse::<String>()?;
     let port = args[2].parse::<i32>()?;
 
-    let drop_probability = args[3].parse::<f32>()?;
 
     let pipeline = gst::Pipeline::new(None);
     let rtpbin = make_element("rtpbin", None)?;
