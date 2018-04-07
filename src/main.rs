@@ -29,7 +29,7 @@ struct NoSuchPad(&'static str, String);
 struct UnknownPT(u32);
 
 #[derive(Debug, Fail)]
-#[fail(display = "Usage: {} (play | record) DROP_PROBABILITY", _0)]
+#[fail(display = "Usage: {} ADDRESS PORT", _0)]
 struct UsageError(String);
 
 #[derive(Debug, Fail)]
@@ -105,8 +105,7 @@ fn example_main() -> Result<(), Error> {
     gst::init()?;
 
     let args: Vec<_> = env::args().collect();
-
-    if args.len() != 2 {
+    if args.len() != 3 {
         return Err(Error::from(UsageError(args[0].clone())));
     }
 
