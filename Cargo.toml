@@ -1,0 +1,14 @@
+[package]
+name = "wappuradio_tlink"
+version = "0.1.0"
+authors = ["Jukka-Pekka Venttola <jukka.pekka.venttola@gmail.com>"]
+
+[dependencies]
+glib = "0.5.0"
+gstreamer = "0.11.0"
+futures = { version = "0.1", optional = true }
+tokio-core = { version = "0.1", optional = true }
+send-cell = "0.1"
+byte-slice-cast = "0.1"
+failure = "0.1"
+failure_derive = "0.1"
