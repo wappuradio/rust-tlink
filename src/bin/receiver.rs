@@ -7,7 +7,7 @@ extern crate glib;
 use std::env;
 use std::error::Error as StdError;
 
-#[path = "common.rs"]
+#[path = "../common.rs"]
 mod examples_common;
 
 extern crate failure;
