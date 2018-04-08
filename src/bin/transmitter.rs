@@ -147,6 +147,8 @@ fn example_main() -> Result<(), Error> {
         }
     })?;
 
+    //Are these linkings necessary for us?
+    /*
     let srcpad = get_static_pad(&q2, "src")?;
     let sinkpad = get_request_pad(&rtpbin, "send_rtp_sink_0")?;
     srcpad.link(&sinkpad).into_result()?;
@@ -154,7 +156,7 @@ fn example_main() -> Result<(), Error> {
     let srcpad = get_static_pad(&rtpbin, "send_rtp_src_0")?;
     let sinkpad = get_static_pad(&sink, "sink")?;
     srcpad.link(&sinkpad).into_result()?;
-
+    */
     let convclone = conv.clone();
     src.connect_pad_added(move |decodebin, src_pad| {
         match connect_decodebin_pad(&src_pad, &convclone) {
@@ -171,19 +173,14 @@ fn example_main() -> Result<(), Error> {
         }
     });
 
-    let video_caps = gst::Caps::new_simple("video/x-raw", &[]);
+ //   let caps = gst::Caps::new_simple("audio/x-rtp", &[]);
 
-    src.set_property_from_str("pattern", "ball");
-    sink.set_property("host", &"127.0.0.1".to_value())?;
-    sink.set_property("sync", &true.to_value())?;
-    enc.set_property("keyframe-max-dist", &30i32.to_value())?;
-    enc.set_property("threads", &12i32.to_value())?;
-    enc.set_property("cpu-used", &(-16i32).to_value())?;
-    enc.set_property("deadline", &1i64.to_value())?;
-    enc.set_property_from_str("error-resilient", "default");
-    src.set_property("expose-all-streams", &false.to_value())?;
-    src.set_property("caps", &video_caps.to_value())?;
-    src.set_property("uri", &uri.to_value())?;
+    opusenc.set_property("bitrate", &opus_bitrate.to_value())?;
+    udpsink.set_property("host", &address.to_value())?;
+    udpsink.set_property("sync", &true.to_value())?;
+    udpsink.set_property("port", &port.to_value())?;
+//    src.set_property("caps", &video_caps.to_value())?;
+ //   src.set_property("uri", &uri.to_value())?;
 
     let bus = pipeline
         .get_bus()
@@ -225,7 +222,7 @@ fn example_main() -> Result<(), Error> {
     let ret = pipeline.set_state(gst::State::Null);
     assert_ne!(ret, gst::StateChangeReturn::Failure);
 
-    Ok((()))
+    Ok(())
 }
 
 fn main() {
