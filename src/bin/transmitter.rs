@@ -158,6 +158,7 @@ fn example_main() -> Result<(), Error> {
     let sinkpad = get_static_pad(&sink, "sink")?;
     srcpad.link(&sinkpad).into_result()?;
     */
+    /*
     let convclone = conv.clone();
     src.connect_pad_added(move |decodebin, src_pad| {
         match connect_decodebin_pad(&src_pad, &convclone) {
@@ -172,7 +173,7 @@ fn example_main() -> Result<(), Error> {
                 ()
             }
         }
-    });
+    });*/
 
  //   let caps = gst::Caps::new_simple("audio/x-rtp", &[]);
 
