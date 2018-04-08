@@ -26,7 +26,7 @@ struct MissingElement(&'static str);
 struct NoSuchPad(&'static str, String);
 
 #[derive(Debug, Fail)]
-#[fail(display = "Usage: {} URI FEC_PERCENTAGE", _0)]
+#[fail(display = "Usage: {} ADDRESS PORT OPUS_BITRATE PERCENTAGE PERCENTAGE_IMPORTANT", _0)]
 struct UsageError(String);
 
 #[derive(Debug, Fail)]
@@ -91,12 +91,15 @@ fn example_main() -> Result<(), Error> {
 
     let args: Vec<_> = env::args().collect();
 
-    if args.len() != 3 {
+    if args.len() != 6 {
         return Err(Error::from(UsageError(args[0].clone())));
     }
 
-    let uri = &args[1];
-    let fec_percentage = args[2].parse::<u32>()?;
+    let address = &args[1];
+    let port = args[2].parse::<u32>()?;
+    let opus_bitrate = args[3].parse::<u32>()?;
+    let percentage = args[4].parse::<u32>()?;
+    let percentage_important = args[5].parse::<u32>()?;
 
     let pipeline = gst::Pipeline::new(None);
     let src = make_element("uridecodebin", None)?;
