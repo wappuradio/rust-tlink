@@ -187,9 +187,9 @@ fn example_main() -> Result<(), Error> {
             }
         }
     })?;
-    let srcpad = get_static_pad(&udpsrc, "src")?;
-    let sinkpad = get_request_pad(&rtpbin, "recv_rtp_sink_0")?;
-    srcpad.link(&sinkpad).into_result()?;
+    //let srcpad = get_static_pad(&udpsrc, "src")?;
+    //let sinkpad = get_request_pad(&rtpbin, "recv_rtp_sink_0")?;
+    //srcpad.link(&sinkpad).into_result()?;
 
     //This is probably unnecessary for us, maybe?
     //Lets look into pads at some point, shall we?
