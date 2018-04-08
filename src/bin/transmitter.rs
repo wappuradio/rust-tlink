@@ -96,9 +96,9 @@ fn example_main() -> Result<(), Error> {
         return Err(Error::from(UsageError(args[0].clone())));
     }
 
-    let address = &args[1];
-    let port = args[2].parse::<u32>()?;
-    let opus_bitrate = args[3].parse::<u32>()?;
+    let address = &args[1].parse::<String>()?;
+    let port = args[2].parse::<i32>()?;
+    let opus_bitrate = args[3].parse::<i32>()?;
     let percentage = args[4].parse::<u32>()?;
     let percentage_important = args[5].parse::<u32>()?;
 
