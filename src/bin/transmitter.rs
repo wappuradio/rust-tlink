@@ -103,15 +103,16 @@ fn example_main() -> Result<(), Error> {
     let percentage_important = args[5].parse::<u32>()?;
 
     let pipeline = gst::Pipeline::new(None);
+    let rtpbin = make_element("rtpbin", None)?;
     let jackaudiosrc = make_element("jackaudiosrc", None)?;
     let audioconvert = make_element("audioconvert", None)?;
     let opusenc = make_element("opusenc", None)?;
     let rtpopuspay = make_element("rtpopuspay", None)?;
     let udpsink = make_element("udpsink", None)?;
 
-    pipeline.add_many(&[&jackaudiosrc, &audioconvert, &opusenc, &rtpopuspay, &udpsink]);
+    pipeline.add_many(&[&rtpbin, &jackaudiosrc, &audioconvert, &opusenc, &rtpopuspay, &udpsink]);
     //Check if sink needs to be connected later
-    gst::Element::link_many(&[&jackaudiosrc, &audioconvert, &opusenc, &rtpopuspay, &udpsink])?;
+    gst::Element::link_many(&[&rtpbin, &jackaudiosrc, &audioconvert, &opusenc, &rtpopuspay, &udpsink])?;
 
     /*
     let src = make_element("uridecodebin", None)?;
