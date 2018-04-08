@@ -110,9 +110,9 @@ fn example_main() -> Result<(), Error> {
     let rtpopuspay = make_element("rtpopuspay", None)?;
     let udpsink = make_element("udpsink", None)?;
 
-    pipeline.add_many(&[&rtpbin, &jackaudiosrc, &audioconvert, &opusenc, &rtpopuspay, &udpsink]);
+    pipeline.add_many(&[&rtpbin, &jackaudiosrc, &audioconvert, &opusenc, &rtpopuspay, &udpsink])?;
     //Check if sink needs to be connected later
-    gst::Element::link_many(&[&rtpbin, &jackaudiosrc, &audioconvert, &opusenc, &rtpopuspay, &udpsink])?;
+    gst::Element::link_many(&[ &audioconvert, &opusenc, &rtpopuspay])?;
 
     /*
     let src = make_element("uridecodebin", None)?;
@@ -149,15 +149,15 @@ fn example_main() -> Result<(), Error> {
     })?;
 
     //Are these linkings necessary for us?
-    /*
-    let srcpad = get_static_pad(&q2, "src")?;
+    
+    let srcpad = get_static_pad(&jackaudiosrc, "src")?;
     let sinkpad = get_request_pad(&rtpbin, "send_rtp_sink_0")?;
     srcpad.link(&sinkpad).into_result()?;
 
+    
     let srcpad = get_static_pad(&rtpbin, "send_rtp_src_0")?;
-    let sinkpad = get_static_pad(&sink, "sink")?;
+    let sinkpad = get_static_pad(&udpsink, "sink")?;
     srcpad.link(&sinkpad).into_result()?;
-    */
     /*
     let convclone = conv.clone();
     src.connect_pad_added(move |decodebin, src_pad| {
