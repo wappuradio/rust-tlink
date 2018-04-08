@@ -76,12 +76,13 @@ fn connect_decodebin_pad(src_pad: &gst::Pad, sink: &gst::Element) -> Result<(), 
     Ok(())
 }
 
-fn make_fec_encoder(fec_percentage: u32) -> Result<gst::Element, Error> {
+fn make_fec_encoder(percentage: u32, percentage_important: u32) -> Result<gst::Element, Error> {
     let fecenc = make_element("rtpulpfecenc", None)?;
 
     fecenc.set_property("pt", &100u32.to_value())?;
     fecenc.set_property("multipacket", &true.to_value())?;
-    fecenc.set_property("percentage", &fec_percentage.to_value())?;
+    fecenc.set_property("percentage", &percentage.to_value())?;
+    fecenc.set_property("percentage_important", &percentage_important.to_value())?;
 
     Ok(fecenc)
 }
@@ -132,7 +133,7 @@ fn example_main() -> Result<(), Error> {
     rtpbin.connect("request-fec-encoder", false, move |values| {
         let rtpbin = values[0].get::<gst::Element>().expect("Invalid argument");
 
-        match make_fec_encoder(fec_percentage) {
+        match make_fec_encoder(percentage, percentage_important) {
             Ok(elem) => Some(elem.to_value()),
             Err(err) => {
                 gst_element_error!(
