@@ -29,7 +29,7 @@ struct NoSuchPad(&'static str, String);
 struct UnknownPT(u32);
 
 #[derive(Debug, Fail)]
-#[fail(display = "Usage: {} PORT LATENCY", _0)]
+#[fail(display = "Usage: {} PORT LATENCY SIZE-TIME(ms)", _0)]
 struct UsageError(String);
 
 #[derive(Debug, Fail)]
@@ -105,14 +105,14 @@ fn example_main() -> Result<(), Error> {
     gst::init()?;
 
     let args: Vec<_> = env::args().collect();
-    if args.len() != 3 {
+    if args.len() != 4 {
         return Err(Error::from(UsageError(args[0].clone())));
     }
 
    // let address = args[1].parse::<String>()?;
     let port = args[1].parse::<i32>()?;
     let latency = args[2].parse::<u32>()?;
-
+    let size_time_ms = args[3].parse::<u64>()?;
 
     let pipeline = gst::Pipeline::new(None);
     let rtpbin = make_element("rtpbin", None)?;
@@ -135,10 +135,11 @@ fn example_main() -> Result<(), Error> {
     gst::Element::link_many(&[&udpsrc, &rtpopusdepay, &opusdec, &audioconvert, &jackaudiosink])?;
 
 
-    rtpbin.connect("new-storage", false, |values| {
+    rtpbin.connect("new-storage", false, move |values| {
         let storage = values[1].get::<gst::Element>().expect("Invalid argument");
+        let size_time_ns  = &size_time_ms * 100000u64;
         storage
-            .set_property("size-time", &250_000_000u64.to_value())
+            .set_property("size-time", &size_time_ns.to_value())
             .unwrap();
 
         None
