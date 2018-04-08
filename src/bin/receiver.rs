@@ -8,7 +8,7 @@ use std::env;
 use std::error::Error as StdError;
 
 #[path = "../common.rs"]
-mod examples_common;
+mod common;
 
 extern crate failure;
 use failure::Error;
@@ -217,7 +217,6 @@ fn example_main() -> Result<(), Error> {
 	*/
     let rtp_caps = gst::Caps::new_simple("application/x-rtp", &[("clock-rate", &48000i32)]);
     
-	//udpsrc.set_property("address", &address.to_value())?;
 	udpsrc.set_property("port", &port.to_value())?;
     udpsrc.set_property("caps", &rtp_caps.to_value())?;
     rtpbin.set_property("do-lost", &true.to_value())?;
@@ -258,7 +257,6 @@ fn example_main() -> Result<(), Error> {
             _ => (),
         }
     }
-
     let ret = pipeline.set_state(gst::State::Null);
     assert_ne!(ret, gst::StateChangeReturn::Failure);
 
@@ -266,7 +264,7 @@ fn example_main() -> Result<(), Error> {
 }
 
 fn main() {
-    match examples_common::run(example_main) {
+    match common::run(example_main) {
         Ok(r) => r,
         Err(e) => eprintln!("Error! {}", e),
     }
