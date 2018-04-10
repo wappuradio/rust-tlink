@@ -110,9 +110,14 @@ fn example_main() -> Result<(), Error> {
     let rtpopuspay = make_element("rtpopuspay", None)?;
     let udpsink = make_element("udpsink", None)?;
 
-    pipeline.add_many(&[&rtpbin, &jackaudiosrc, &audioconvert, &opusenc, &rtpopuspay, &udpsink])?;
+    pipeline.add_many(&[&jackaudiosrc, &audioconvert, &opusenc, &rtpopuspay, &rtpbin, &udpsink])?;
+
+    audioconvert.link(&opusenc)?;
+    opusenc.link(&rtpopuspay)?;
+
+
     //Check if sink needs to be connected later
-    gst::Element::link_many(&[&jackaudiosrc, &audioconvert, &opusenc, &rtpopuspay, &udpsink])?;
+  //  gst::Element::link_many(&[&audioconvert, &rtpopuspay])?;
 
     /*
     let src = make_element("uridecodebin", None)?;
@@ -150,7 +155,7 @@ fn example_main() -> Result<(), Error> {
 
     //Are these linkings necessary for us?
     
-  /*  let srcpad = get_static_pad(&jackaudiosrc, "src")?;
+    let srcpad = get_static_pad(&rtpopuspay, "src")?;
     let sinkpad = get_request_pad(&rtpbin, "send_rtp_sink_0")?;
     srcpad.link(&sinkpad).into_result()?;
 
@@ -158,9 +163,9 @@ fn example_main() -> Result<(), Error> {
     let srcpad = get_static_pad(&rtpbin, "send_rtp_src_0")?;
     let sinkpad = get_static_pad(&udpsink, "sink")?;
     srcpad.link(&sinkpad).into_result()?;
-    *//*
-    let convclone = conv.clone();
-    src.connect_pad_added(move |decodebin, src_pad| {
+    
+    let convclone = audioconvert.clone();
+ /*   jackaudiosrc.connect_pad_added(move |decodebin, src_pad| {
         match connect_decodebin_pad(&src_pad, &convclone) {
             Ok(_) => (),
             Err(err) => {
@@ -174,7 +179,7 @@ fn example_main() -> Result<(), Error> {
             }
         }
     });*/
-
+    jackaudiosrc.link(&audioconvert);
  //   let caps = gst::Caps::new_simple("audio/x-rtp", &[]);
 
     opusenc.set_property("bitrate", &opus_bitrate.to_value())?;

@@ -128,10 +128,12 @@ fn example_main() -> Result<(), Error> {
     let rtpopuspay = make_element("rtpopuspay", None)?;
     let udpsink = make_element("udpsink", None)?;
 
-    pipeline.add_many(&[&rtpbin, &audiotestsrc, &audioconvert, &opusenc, &rtpopuspay, &udpsink])?;
+    pipeline.add_many(&[&audiotestsrc, &audioconvert, &opusenc, &rtpopuspay, &rtpbin, &udpsink])?;
     //Check if sink needs to be connected later
-    gst::Element::link_many(&[&audiotestsrc, &audioconvert, &opusenc, &rtpopuspay, &udpsink])?;
+  //  gst::Element::link_many(&[&audiotestsrc, &audioconvert, &opusenc, &rtpopuspay, &udpsink])?;
 
+    audioconvert.link(&opusenc)?;
+    opusenc.link(&rtpopuspay)?;
     /*
     let src = make_element("uridecodebin", None)?;
     let conv = make_element("videoconvert", None)?;
@@ -165,6 +167,32 @@ fn example_main() -> Result<(), Error> {
             }
         }
     })?;
+
+    let srcpad = get_static_pad(&rtpopuspay, "src")?;
+    let sinkpad = get_request_pad(&rtpbin, "send_rtp_sink_0")?;
+    srcpad.link(&sinkpad).into_result()?;
+
+    
+    let srcpad = get_static_pad(&rtpbin, "send_rtp_src_0")?;
+    let sinkpad = get_static_pad(&udpsink, "sink")?;
+    srcpad.link(&sinkpad).into_result()?;
+    
+    let convclone = audioconvert.clone();
+ /*   jackaudiosrc.connect_pad_added(move |decodebin, src_pad| {
+        match connect_decodebin_pad(&src_pad, &convclone) {
+            Ok(_) => (),
+            Err(err) => {
+                gst_element_error!(
+                    decodebin,
+                    gst::LibraryError::Failed,
+                    ("Failed to link decodebin srcpad"),
+                    ["{}", err]
+                );
+                ()
+            }
+        }
+    });*/
+    audiotestsrc.link(&audioconvert);
 
     //Are these linkings necessary for us?
     
@@ -201,7 +229,7 @@ fn example_main() -> Result<(), Error> {
     println!("{:?}", opusenc.get_property("frame-size"));
   //  println!("{:?}", GstAudioTestSrcWave::GST_AUDIO_TEST_SRC_WAVE_TICKS);
 
-    audiotestsrc.set_property("wave", &wave.to_value())?;
+  //  audiotestsrc.set_property("wave", &wave.to_value())?;
     audiotestsrc.set_property("freq", &freq.to_value())?;
 
     opusenc.set_property("bitrate", &opus_bitrate.to_value())?;
