@@ -114,7 +114,7 @@ fn example_main() -> Result<(), Error> {
     let address = &args[1].parse::<String>()?;
     let port = args[2].parse::<i32>()?;
     let opus_bitrate = args[3].parse::<i32>()?;
-    let opus_frame_size = args[4].parse::<u32>()?;
+    let opus_frame_size = args[4].parse::<i32>()?;
     let percentage = args[5].parse::<u32>()?;
     let percentage_important = args[6].parse::<u32>()?;
     let wave = args[7].parse::<i32>()?;
@@ -192,7 +192,7 @@ fn example_main() -> Result<(), Error> {
             }
         }
     });*/
-    audiotestsrc.link(&audioconvert);
+    audiotestsrc.link(&audioconvert)?;
 
     //Are these linkings necessary for us?
     
@@ -221,19 +221,15 @@ fn example_main() -> Result<(), Error> {
         }
     });*/
  //   let caps = gst::Caps::new_simple("audio/x-rtp", &[]);
-    let wave2 = audiotestsrc.get_property("wave").unwrap();
-   // let wawa = TypedValue
-    println!("{:?}",wave2);
-    println!("{:?}",wave.to_value() );
-    println!("{:?}", wave2.type_());
-    println!("{:?}", opusenc.get_property("frame-size"));
-  //  println!("{:?}", GstAudioTestSrcWave::GST_AUDIO_TEST_SRC_WAVE_TICKS);
+    let wave_type = audiotestsrc.get_property("wave").unwrap().type_();
+    let wave_as_value = glib::EnumClass::new(wave_type).unwrap().to_value(wave).unwrap();
+    let frame_size_type = opusenc.get_property("frame-size").unwrap().type_();
+    let frame_size_as_value = glib::EnumClass::new(frame_size_type).unwrap().to_value(opus_frame_size).unwrap();
 
-  //  audiotestsrc.set_property("wave", &wave.to_value())?;
+    audiotestsrc.set_property("wave", &wave_as_value)?;
     audiotestsrc.set_property("freq", &freq.to_value())?;
-
     opusenc.set_property("bitrate", &opus_bitrate.to_value())?;
-   // opusenc.set_property("frame-size", &opus_frame_size.to_value())?;
+    opusenc.set_property("frame-size", &frame_size_as_value)?;
     udpsink.set_property("host", &address.to_value())?;
     udpsink.set_property("sync", &true.to_value())?;
     udpsink.set_property("port", &port.to_value())?;
