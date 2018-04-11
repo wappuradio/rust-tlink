@@ -26,7 +26,7 @@ struct MissingElement(&'static str);
 struct NoSuchPad(&'static str, String);
 
 #[derive(Debug, Fail)]
-#[fail(display = "Usage: {} ADDRESS PORT OPUS_BITRATE PERCENTAGE PERCENTAGE_IMPORTANT", _0)]
+#[fail(display = "Usage: {} ADDRESS PORT OPUS_BITRATE OPUS_FRAME_SIZE PERCENTAGE PERCENTAGE_IMPORTANT", _0)]
 struct UsageError(String);
 
 #[derive(Debug, Fail)]
@@ -92,15 +92,16 @@ fn example_main() -> Result<(), Error> {
 
     let args: Vec<_> = env::args().collect();
 
-    if args.len() != 6 {
+    if args.len() != 7 {
         return Err(Error::from(UsageError(args[0].clone())));
     }
 
     let address = &args[1].parse::<String>()?;
     let port = args[2].parse::<i32>()?;
     let opus_bitrate = args[3].parse::<i32>()?;
-    let percentage = args[4].parse::<u32>()?;
-    let percentage_important = args[5].parse::<u32>()?;
+    let opus_frame_size = args[4].parse::<i32>()?;
+    let percentage = args[5].parse::<u32>()?;
+    let percentage_important = args[6].parse::<u32>()?;
 
     let pipeline = gst::Pipeline::new(None);
     let rtpbin = make_element("rtpbin", None)?;
@@ -179,10 +180,13 @@ fn example_main() -> Result<(), Error> {
             }
         }
     });*/
-    jackaudiosrc.link(&audioconvert);
+    jackaudiosrc.link(&audioconvert)?;
  //   let caps = gst::Caps::new_simple("audio/x-rtp", &[]);
+    let frame_size_type = opusenc.get_property("frame-size").unwrap().type_();
+    let frame_size_as_value = glib::EnumClass::new(frame_size_type).unwrap().to_value(opus_frame_size).unwrap();
 
     opusenc.set_property("bitrate", &opus_bitrate.to_value())?;
+    opusenc.set_property("frame-size", &frame_size_as_value)?;
     udpsink.set_property("host", &address.to_value())?;
     udpsink.set_property("sync", &true.to_value())?;
     udpsink.set_property("port", &port.to_value())?;
