@@ -1,11 +1,13 @@
 #[macro_use]
 extern crate gstreamer as gst;
 use gst::prelude::*;
-
 extern crate glib;
+
 
 use std::env;
 use std::error::Error as StdError;
+use std::time;
+use std::thread;
 
 #[path = "../common.rs"]
 mod common;
@@ -89,7 +91,7 @@ fn connect_rtpbin_srcpad(src_pad: &gst::Pad, sink: &gst::Element) -> Result<(), 
 }
 
 fn make_fec_decoder(rtpbin: &gst::Element, sess_id: u32) -> Result<gst::Element, Error> {
-    let fecdec = make_element("rtpulpfecdec", None)?;
+    let fecdec = make_element("rtpulpfecdec", "fecdec")?;
     let internal_storage = rtpbin
         .emit("get-internal-storage", &[&sess_id.to_value()])
         .unwrap()
@@ -138,7 +140,6 @@ fn example_main() -> Result<(), Error> {
     // TODO: Check what actually need to be linked
     gst::Element::link_many(&[&rtpopusdepay, &opusdec, &audioconvert, &jackaudiosink])?;
 
-    udpsrc.link(&rtpbin); 
 
     rtpbin.connect("new-storage", false, move |values| {
         let storage = values[1].get::<gst::Element>().expect("Invalid argument");
@@ -153,7 +154,7 @@ fn example_main() -> Result<(), Error> {
     rtpbin.connect("request-pt-map", false, |values| {
         let pt = values[2].get::<u32>().expect("Invalid argument");
         match pt {
-        	100 => Some(
+            100 => Some(
                 gst::Caps::new_simple(
                     "application/x-rtp",
                     &[
@@ -194,22 +195,27 @@ fn example_main() -> Result<(), Error> {
             }
         }
     })?;
-  /*  let srcpad = get_static_pad(&udpsrc, "src")?;
+  //  udpsrc.link(&rtpopusdepay);
+
+    //udpsrc.link(&rtpbin); 
+    let srcpad = get_static_pad(&udpsrc, "src")?;
     let sinkpad = get_request_pad(&rtpbin, "recv_rtp_sink_0")?;
     srcpad.link(&sinkpad).into_result()?;
-   */
-   // let srcpad2 = get_request_pad(&rtpbin, "rtpbin.").unwrap();
-   // let sink = get_static_pad(&rtpopusdepay, "sink");
-   // rtpbin.link(&rtpopusdepay)?;
+    
+    /*let srcpad2 = get_request_pad(&rtpbin, "recv_rtp_sink_0")?;
+    let sinkpad2 = get_static_pad(&rtpopusdepay, "sink")?;
+    srcpad2.link(&sinkpad2).into_result()?;*/
+    //rtpbin.link(&rtpopusdepay)?;
     //This is probably unnecessary for us, maybe?
     //Lets look into pads at some point, shall we?
     /*
     let srcpad = get_static_pad(&rtpbin, None)?;
     let sinkpad = get_request_pad(&rtpbin, "recv_rtp_sink_0")?;
     srcpad.link(&sinkpad).into_result()?;
-	*/
-
+    */
+    // How this works depend on the implementation of the library.
     let depay_clone = rtpopusdepay.clone();
+    //rtpbin.link(&depay_clone)?;
     rtpbin.connect_pad_added(move |rtpbin, src_pad| {
         match connect_rtpbin_srcpad(&src_pad, &depay_clone) {
             Ok(_) => (),
@@ -224,9 +230,10 @@ fn example_main() -> Result<(), Error> {
             }
         }
     });
+
     let rtp_caps = gst::Caps::new_simple("application/x-rtp", &[("clock-rate", &48000i32)]);
     
-	udpsrc.set_property("port", &port.to_value())?;
+    udpsrc.set_property("port", &port.to_value())?;
     udpsrc.set_property("caps", &rtp_caps.to_value())?;
     rtpbin.set_property("do-lost", &true.to_value())?;
     rtpbin.set_property("latency", &latency.to_value())?;
@@ -236,11 +243,36 @@ fn example_main() -> Result<(), Error> {
 
     let ret = pipeline.set_state(gst::State::Playing);
     assert_ne!(ret, gst::StateChangeReturn::Failure);
-    gst::debug_set_active(true);
-    
+
+    let pipelineclone = pipeline.clone();
+    let stats_thread = thread::spawn(move || {
+        loop {
+        match pipelineclone.get_by_name("fecdec") {
+            Some(fecdec) => {
+                               //  println!("FecDec {:?}", fecdec);
+                                let recovered = fecdec.get_property("recovered");
+                                let unrecovered = fecdec.get_property("unrecovered");
+                                println!("Recovered packets: {:?}", recovered);
+                                println!("Unrecovered packets: {:?}", unrecovered);
+
+                             },
+            None => {
+                        println!("Was not Some");
+                        },
+        }
+        thread::sleep(time::Duration::from_millis(500));
+        }
+    });
+
+
+
+
+
+   // gst::debug_set_active(true);
+    //tässä tod näk käy niin, että suoritus "jää jumiin" timed_pop:iin
+    //Pistä threadiin, jos haluat välttä
     while let Some(msg) = bus.timed_pop(gst::CLOCK_TIME_NONE) {
         use gst::MessageView;
-
         match msg.view() {
             MessageView::Eos(..) => break,
             MessageView::Error(err) => {
@@ -269,7 +301,7 @@ fn example_main() -> Result<(), Error> {
     }
     let ret = pipeline.set_state(gst::State::Null);
     assert_ne!(ret, gst::StateChangeReturn::Failure);
-
+    let _ = stats_thread.join();
     Ok(())
 }
 
