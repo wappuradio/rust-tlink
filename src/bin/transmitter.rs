@@ -10,6 +10,8 @@ use std::error::Error as StdError;
 mod common;
 
 use std::env;
+use std::time;
+use std::thread;
 
 extern crate failure;
 use failure::Error;
@@ -69,7 +71,7 @@ fn get_request_pad(element: &gst::Element, pad_name: &'static str) -> Result<gst
     }
 }
 
-fn connect_decodebin_pad(src_pad: &gst::Pad, sink: &gst::Element) -> Result<(), Error> {
+fn connect_srcbin_pad(src_pad: &gst::Pad, sink: &gst::Element) -> Result<(), Error> {
     let sinkpad = get_static_pad(&sink, "sink")?;
     src_pad.link(&sinkpad).into_result()?;
 
@@ -77,10 +79,11 @@ fn connect_decodebin_pad(src_pad: &gst::Pad, sink: &gst::Element) -> Result<(), 
 }
 
 fn make_fec_encoder(percentage: u32, percentage_important: u32) -> Result<gst::Element, Error> {
-    let fecenc = make_element("rtpulpfecenc", None)?;
+    let fecenc = make_element("rtpulpfecenc", "fecenc")?;
 
     fecenc.set_property("pt", &100u32.to_value())?;
-    fecenc.set_property("multipacket", &true.to_value())?;
+    fecenc.set_property("multipacket", &false.to_value())?;
+//    fecenc.set_property("mux-seq", &true.to_value())?;
     fecenc.set_property("percentage", &percentage.to_value())?;
     fecenc.set_property("percentage_important", &percentage_important.to_value())?;
 
@@ -112,7 +115,8 @@ fn example_main() -> Result<(), Error> {
     let udpsink = make_element("udpsink", None)?;
 
     pipeline.add_many(&[&jackaudiosrc, &audioconvert, &opusenc, &rtpopuspay, &rtpbin, &udpsink])?;
-
+    
+//    jackaudiosrc.link(&audioconvert)?;
     audioconvert.link(&opusenc)?;
     opusenc.link(&rtpopuspay)?;
 
@@ -165,32 +169,37 @@ fn example_main() -> Result<(), Error> {
     let sinkpad = get_static_pad(&udpsink, "sink")?;
     srcpad.link(&sinkpad).into_result()?;
     
-    let convclone = audioconvert.clone();
- /*   jackaudiosrc.connect_pad_added(move |decodebin, src_pad| {
-        match connect_decodebin_pad(&src_pad, &convclone) {
-            Ok(_) => (),
+    let srcpad = get_static_pad(&jackaudiosrc, "src")?;
+    let sinkpad = get_static_pad(&audioconvert, "sink")?;
+    srcpad.link(&sinkpad).into_result()?;
+
+//    jackaudiosrc.link(&audioconvert);
+    
+//   let convclone = audioconvert.clone();
+  //  jackaudiosrc.connect_pad_added(move |rtpbin, src_pad| {
+  //      connect_srcbin_pad(&src_pad, &audioconvert);
+  /*          Ok(_) => (),
             Err(err) => {
                 gst_element_error!(
-                    decodebin,
+                    rtpbin,
                     gst::LibraryError::Failed,
                     ("Failed to link decodebin srcpad"),
                     ["{}", err]
                 );
                 ()
             }
-        }
-    });*/
-    jackaudiosrc.link(&audioconvert)?;
- //   let caps = gst::Caps::new_simple("audio/x-rtp", &[]);
+        }*/
+   // let caps = gst::Caps::new_simple("audio/x-rtp", &[]);
     let frame_size_type = opusenc.get_property("frame-size").unwrap().type_();
     let frame_size_as_value = glib::EnumClass::new(frame_size_type).unwrap().to_value(opus_frame_size).unwrap();
 
     opusenc.set_property("bitrate", &opus_bitrate.to_value())?;
     opusenc.set_property("frame-size", &frame_size_as_value)?;
+//    opusenc.set_property("max-payload-size", &512u32.to_value())?;
     udpsink.set_property("host", &address.to_value())?;
-    udpsink.set_property("sync", &true.to_value())?;
+    udpsink.set_property("sync", &false.to_value())?;
     udpsink.set_property("port", &port.to_value())?;
-//    src.set_property("caps", &video_caps.to_value())?;
+ //   src.set_property("caps", &audio_caps.to_value())?;
  //   src.set_property("uri", &uri.to_value())?;
 
     let bus = pipeline
@@ -199,6 +208,28 @@ fn example_main() -> Result<(), Error> {
 
     let ret = pipeline.set_state(gst::State::Playing);
     assert_ne!(ret, gst::StateChangeReturn::Failure);
+
+    let pipelineclone = pipeline.clone();
+    let _stats_thread = thread::spawn(move || {
+        loop {
+        match pipelineclone.get_by_name("fecenc") {
+            Some(fecenc) => {
+                               //  println!("FecDec {:?}", fecdec);
+                                let protected = fecenc.get_property("protected");
+                                //let unrecovered = fecdec.get_property("unrecovered");
+                                println!("Protected packets: {:?}", protected);
+                                //println!("Unrecovered packets: {:?}", unrecovered);
+
+                             },
+            None => {
+                        println!("Was not Some");
+                        },
+        }
+        println!("tissit");
+        thread::sleep(time::Duration::from_millis(500));
+        }
+    });
+
 
     while let Some(msg) = bus.timed_pop(gst::CLOCK_TIME_NONE) {
         use gst::MessageView;

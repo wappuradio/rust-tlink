@@ -143,7 +143,7 @@ fn example_main() -> Result<(), Error> {
 
     rtpbin.connect("new-storage", false, move |values| {
         let storage = values[1].get::<gst::Element>().expect("Invalid argument");
-        let size_time_ns  = &size_time_ms * 100000u64;
+        let size_time_ns  = &size_time_ms * 1000000u64;
         storage
             .set_property("size-time", &size_time_ns.to_value())
             .unwrap();
