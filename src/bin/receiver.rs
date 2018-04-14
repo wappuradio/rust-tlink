@@ -79,7 +79,6 @@ fn connect_rtpbin_srcpad(src_pad: &gst::Pad, sink: &gst::Element) -> Result<(), 
     let split_name = name.split("_");
     let split_name = split_name.collect::<Vec<&str>>();
     let pt = split_name[5].parse::<u32>()?;
-
     match pt {
         96 => {
             let sinkpad = get_static_pad(sink, "sink")?;
@@ -121,9 +120,9 @@ fn example_main() -> Result<(), Error> {
     let size_time_ms = args[3].parse::<u64>()?;
 
     let pipeline = gst::Pipeline::new(None);
-    let rtpbin = make_element("rtpbin", None)?;
     let udpsrc = make_element("udpsrc", None)?;
-    let rtpopusdepay = make_element("rtpopusdepay", None)?;
+    let rtpbin = make_element("rtpbin", None)?;
+    let rtpopusdepay = make_element("rtpopusdepay", "depay")?;
     let opusdec = make_element("opusdec", None)?;
     let audioconvert = make_element("audioconvert", None)?;
     let jackaudiosink = make_element("jackaudiosink", None)?;
@@ -178,7 +177,44 @@ fn example_main() -> Result<(), Error> {
         }
     })?;
 
-    rtpbin.connect("request-fec-decoder", false, |values| {
+   
+    //udpsrc.link(&rtpopusdepay);
+
+    //udpsrc.link(&rtpbin); 
+    let srcpad = get_static_pad(&udpsrc, "src")?;
+    let sinkpad = get_request_pad(&rtpbin, "recv_rtp_sink_0")?;
+    srcpad.link(&sinkpad).into_result()?;
+    
+   /* let srcpad2 = get_request_pad(&rtpbin, "send_rtp_src_0")?;
+    let sinkpad2 = get_static_pad(&rtpopusdepay, "sink")?;
+    srcpad2.link(&sinkpad2).into_result()?;*/
+   // rtpbin.link(&queue)?;
+    //This is probably unnecessary for us, maybe?
+    //Lets look into pads at some point, shall we?
+    /*
+    let srcpad = get_static_pad(&rtpbin, None)?;
+    let sinkpad = get_request_pad(&rtpbin, "recv_rtp_sink_0")?;
+    srcpad.link(&sinkpad).into_result()?;
+    */
+    // How this works depend on the implementation of the library.
+    let depay_clone = rtpopusdepay.clone();
+    //rtpbin.link(&rtpopusdepay)?;
+    rtpbin.connect_pad_added(move |rtpbin, src_pad| {
+        rtpbin.unlink(&depay_clone);
+     
+        match connect_rtpbin_srcpad(&src_pad, &depay_clone) {
+            Ok(_) => (),
+            Err(err) => {
+                gst_element_error!(
+                    rtpbin,
+                    gst::LibraryError::Failed,
+                    ("Failed to link srcpad"),
+                    ["{}", err]
+                );
+                ()
+            }
+        }
+        rtpbin.connect("request-fec-decoder", false, |values| {
         let rtpbin = values[0].get::<gst::Element>().expect("Invalid argument");
         let sess_id = values[1].get::<u32>().expect("Invalid argument");
         println!("Requesting fecdec");
@@ -194,41 +230,7 @@ fn example_main() -> Result<(), Error> {
                 None
             }
         }
-    })?;
-  //  udpsrc.link(&rtpopusdepay);
-
-    //udpsrc.link(&rtpbin); 
-    let srcpad = get_static_pad(&udpsrc, "src")?;
-    let sinkpad = get_request_pad(&rtpbin, "recv_rtp_sink_0")?;
-    srcpad.link(&sinkpad).into_result()?;
-    
-    /*let srcpad2 = get_request_pad(&rtpbin, "recv_rtp_sink_0")?;
-    let sinkpad2 = get_static_pad(&rtpopusdepay, "sink")?;
-    srcpad2.link(&sinkpad2).into_result()?;*/
-    //rtpbin.link(&rtpopusdepay)?;
-    //This is probably unnecessary for us, maybe?
-    //Lets look into pads at some point, shall we?
-    /*
-    let srcpad = get_static_pad(&rtpbin, None)?;
-    let sinkpad = get_request_pad(&rtpbin, "recv_rtp_sink_0")?;
-    srcpad.link(&sinkpad).into_result()?;
-    */
-    // How this works depend on the implementation of the library.
-    let depay_clone = rtpopusdepay.clone();
-    //rtpbin.link(&depay_clone)?;
-    rtpbin.connect_pad_added(move |rtpbin, src_pad| {
-        match connect_rtpbin_srcpad(&src_pad, &depay_clone) {
-            Ok(_) => (),
-            Err(err) => {
-                gst_element_error!(
-                    rtpbin,
-                    gst::LibraryError::Failed,
-                    ("Failed to link srcpad"),
-                    ["{}", err]
-                );
-                ()
-            }
-        }
+        });
     });
 
     let rtp_caps = gst::Caps::new_simple("application/x-rtp", &[("clock-rate", &48000i32)]);
@@ -260,6 +262,33 @@ fn example_main() -> Result<(), Error> {
                         println!("Was not Some");
                         },
         }
+        match pipelineclone.get_by_name("rtpjitterbuffer0") {
+            Some(session) => {
+                let stats = session.get_property("stats").unwrap();
+                println!("{:?}", stats);
+               // let received = gstreamer_sys::gst_structure_get_value(&stats, "packets-received");
+
+            }, 
+            None => {
+                println!("Did not get jitterbuffer");
+            }
+        }
+         match pipelineclone.get_by_name("depay") {
+            Some(depay) => {
+                let state = depay.get_state(gst::CLOCK_TIME_NONE);
+                println!("{:?}", state);
+               // let received = gstreamer_sys::gst_structure_get_value(&stats, "packets-received");
+
+            }, 
+            None => {
+                println!("Did not get opusdepay");
+            }
+        }
+        gst::debug_bin_to_dot_file_with_ts(
+                        &pipelineclone,
+                        gst::DebugGraphDetails::all(),
+                        "client-playing-thread",
+                    );
         thread::sleep(time::Duration::from_millis(500));
         }
     });
@@ -274,7 +303,9 @@ fn example_main() -> Result<(), Error> {
     while let Some(msg) = bus.timed_pop(gst::CLOCK_TIME_NONE) {
         use gst::MessageView;
         match msg.view() {
-            MessageView::Eos(..) => break,
+            MessageView::Eos(..) => {
+                println!("Stream ended");
+            },
             MessageView::Error(err) => {
                 return Err(ErrorMessage {
                     src: msg.get_src()
