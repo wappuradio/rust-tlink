@@ -71,12 +71,13 @@ fn get_request_pad(element: &gst::Element, pad_name: &'static str) -> Result<gst
     }
 }
 
+/*
 fn connect_srcbin_pad(src_pad: &gst::Pad, sink: &gst::Element) -> Result<(), Error> {
     let sinkpad = get_static_pad(&sink, "sink")?;
     src_pad.link(&sinkpad).into_result()?;
 
     Ok(())
-}
+}*/
 
 fn make_fec_encoder(percentage: u32, percentage_important: u32) -> Result<gst::Element, Error> {
     let fecenc = make_element("rtpulpfecenc", "fecenc")?;
@@ -110,15 +111,19 @@ fn example_main() -> Result<(), Error> {
     let rtpbin = make_element("rtpbin", None)?;
     let jackaudiosrc = make_element("jackaudiosrc", None)?;
     let audioconvert = make_element("audioconvert", None)?;
+    let queue1 = make_element("queue", None)?;
     let opusenc = make_element("opusenc", None)?;
+    let queue2 = make_element("queue", None)?;
     let rtpopuspay = make_element("rtpopuspay", None)?;
     let udpsink = make_element("udpsink", None)?;
 
-    pipeline.add_many(&[&jackaudiosrc, &audioconvert, &opusenc, &rtpopuspay, &rtpbin, &udpsink])?;
+    pipeline.add_many(&[&jackaudiosrc, &audioconvert, &queue1, &opusenc, &queue2, &rtpopuspay, &rtpbin, &udpsink])?;
     
-//    jackaudiosrc.link(&audioconvert)?;
-    audioconvert.link(&opusenc)?;
+    jackaudiosrc.link(&audioconvert)?;
+    audioconvert.link(&queue1)?;
+    queue1.link(&opusenc)?;
     opusenc.link(&rtpopuspay)?;
+    rtpopuspay.link(&queue2)?;
 
 
     //Check if sink needs to be connected later
@@ -160,7 +165,7 @@ fn example_main() -> Result<(), Error> {
 
     //Are these linkings necessary for us?
     
-    let srcpad = get_static_pad(&rtpopuspay, "src")?;
+    let srcpad = get_static_pad(&queue2, "src")?;
     let sinkpad = get_request_pad(&rtpbin, "send_rtp_sink_0")?;
     srcpad.link(&sinkpad).into_result()?;
 
@@ -169,9 +174,9 @@ fn example_main() -> Result<(), Error> {
     let sinkpad = get_static_pad(&udpsink, "sink")?;
     srcpad.link(&sinkpad).into_result()?;
     
-    let srcpad = get_static_pad(&jackaudiosrc, "src")?;
-    let sinkpad = get_static_pad(&audioconvert, "sink")?;
-    srcpad.link(&sinkpad).into_result()?;
+   // let srcpad = get_static_pad(&jackaudiosrc, "src")?;
+   // let sinkpad = get_static_pad(&audioconvert, "sink")?;
+   // srcpad.link(&sinkpad).into_result()?;
 
 //    jackaudiosrc.link(&audioconvert);
     
@@ -193,6 +198,7 @@ fn example_main() -> Result<(), Error> {
     let frame_size_type = opusenc.get_property("frame-size").unwrap().type_();
     let frame_size_as_value = glib::EnumClass::new(frame_size_type).unwrap().to_value(opus_frame_size).unwrap();
 
+    jackaudiosrc.set_property("buffer-time", &10000u32.to_value())?;
     opusenc.set_property("bitrate", &opus_bitrate.to_value())?;
     opusenc.set_property("frame-size", &frame_size_as_value)?;
 //    opusenc.set_property("max-payload-size", &512u32.to_value())?;
