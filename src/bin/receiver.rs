@@ -240,7 +240,7 @@ fn example_main() -> Result<(), Error> {
     rtpbin.set_property("do-lost", &true.to_value())?;
     rtpbin.set_property("latency", &latency.to_value())?;
     opusdec.set_property("plc", &true.to_value())?;
-    jackaudiosink.set_property("buffer-time", &100000u32.to_value())?;
+    jackaudiosink.set_property("buffer-time", &100000i64.to_value())?;
     let bus = pipeline
         .get_bus()
         .expect("Pipeline without bus. Shouldn't happen!");

@@ -198,7 +198,7 @@ fn example_main() -> Result<(), Error> {
     let frame_size_type = opusenc.get_property("frame-size").unwrap().type_();
     let frame_size_as_value = glib::EnumClass::new(frame_size_type).unwrap().to_value(opus_frame_size).unwrap();
 
-    jackaudiosrc.set_property("buffer-time", &10000u32.to_value())?;
+    jackaudiosrc.set_property("buffer-time", &10000i64.to_value())?;
     opusenc.set_property("bitrate", &opus_bitrate.to_value())?;
     opusenc.set_property("frame-size", &frame_size_as_value)?;
 //    opusenc.set_property("max-payload-size", &512u32.to_value())?;
