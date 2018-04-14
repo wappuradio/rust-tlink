@@ -123,7 +123,9 @@ fn example_main() -> Result<(), Error> {
     let udpsrc = make_element("udpsrc", None)?;
     let rtpbin = make_element("rtpbin", None)?;
     let rtpopusdepay = make_element("rtpopusdepay", "depay")?;
+    let queue1 = make_element("queue", None)?;
     let opusdec = make_element("opusdec", None)?;
+    let queue2 = make_element("queue", None)?;
     let audioconvert = make_element("audioconvert", None)?;
     let jackaudiosink = make_element("jackaudiosink", None)?;
 
@@ -135,9 +137,9 @@ fn example_main() -> Result<(), Error> {
     let scale = make_element("videoscale", None)?;
     let filter = make_element("capsfilter", None)?;
 	*/
-    pipeline.add_many(&[&udpsrc, &rtpbin, &rtpopusdepay, &opusdec, &audioconvert, &jackaudiosink])?;
+    pipeline.add_many(&[&udpsrc, &rtpbin, &rtpopusdepay, &queue1, &opusdec, &queue2, &audioconvert, &jackaudiosink])?;
     // TODO: Check what actually need to be linked
-    gst::Element::link_many(&[&rtpopusdepay, &opusdec, &audioconvert, &jackaudiosink])?;
+    gst::Element::link_many(&[&rtpopusdepay, &queue1, &opusdec, &queue2, &audioconvert, &jackaudiosink])?;
 
 
     rtpbin.connect("new-storage", false, move |values| {
@@ -239,6 +241,8 @@ fn example_main() -> Result<(), Error> {
     udpsrc.set_property("caps", &rtp_caps.to_value())?;
     rtpbin.set_property("do-lost", &true.to_value())?;
     rtpbin.set_property("latency", &latency.to_value())?;
+    opusdec.set_property("plc", &true.to_value())?;
+    jackaudiosink.set_property("buffer-time", &100000i64.to_value())?;
     let bus = pipeline
         .get_bus()
         .expect("Pipeline without bus. Shouldn't happen!");
